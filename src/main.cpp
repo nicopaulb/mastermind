@@ -11,50 +11,52 @@ LOG_MODULE_REGISTER(main);
 #include <zephyr/drivers/spi.h>
 #include <zephyr/sys/util.h>
 
-#define STRIP_NODE		DT_ALIAS(led_strip)
-#define STRIP_NUM_PIXELS	DT_PROP(DT_ALIAS(led_strip), chain_length)
-#define DELAY_TIME K_MSEC(500)
+#include "combination.hpp"
+#include "leds.hpp"
+#include "buttons.hpp"
 
-#define RGB(_r, _g, _b) { .r = (_r), .g = (_g), .b = (_b) }
-
-static const struct led_rgb colors[] = {
-	RGB(255, 0x00, 0x00), /* red */
-	RGB(0x00, 255, 0x00), /* green */
-	RGB(0x00, 0x00, 255), /* blue */
-};
-
-static struct led_rgb pixels[STRIP_NUM_PIXELS];
-
-static const struct device *const strip = DEVICE_DT_GET(STRIP_NODE);
+static led_strip leds;
+static buttons buts;
 
 int main(void)
 {
-	size_t color = 0;
-	int rc;
+	combination code;
+	combination tentative;
 
-	if (device_is_ready(strip)) {
-		LOG_INF("Found LED strip device %s", strip->name);
-	} else {
-		LOG_ERR("LED strip device %s is not ready", strip->name);
-		return 0;
+	if (!buts.init())
+	{
+		return 1;
 	}
 
-	LOG_INF("Displaying pattern on strip");
-	while (1) {
-		for (size_t cursor = 0; cursor < ARRAY_SIZE(pixels); cursor++) {
-			memset(&pixels, 0x00, sizeof(pixels));
-			memcpy(&pixels[cursor], &colors[color], sizeof(struct led_rgb));
+	if (!leds.init())
+	{
+		return 1;
+	}
 
-			rc = led_strip_update_rgb(strip, pixels, STRIP_NUM_PIXELS);
-			if (rc) {
-				LOG_ERR("couldn't update strip: %d", rc);
-			}
+	code.random_fill();
 
-			k_sleep(DELAY_TIME);
+	leds.update_combination(code);
+	leds.update_clues();
+	leds.refresh();
+	struct k_poll_signal *signal = buttons::get_signal();
+	struct k_poll_event events[1] = {
+		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+								 K_POLL_MODE_NOTIFY_ONLY,
+								 signal),
+	};
+
+	while (1)
+	{
+		k_poll(events, 1, K_FOREVER);
+		unsigned int signaled;
+		int result;
+		k_poll_signal_check(signal, &signaled, &result);
+
+		if (signaled && (result == 0x1337))
+		{
+			LOG_INF("Buttons event");
 		}
-
-		color = (color + 1) % ARRAY_SIZE(colors);
 	}
 
-	return 0;
+	return 1;
 }
