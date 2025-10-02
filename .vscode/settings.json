@@ -26,7 +26,13 @@
         "functional": "cpp",
         "tuple": "cpp",
         "type_traits": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "xlocmon": "cpp",
+        "xtr1common": "cpp",
+        "xutility": "cpp",
+        "ratio": "cpp",
+        "chrono": "cpp",
+        "smf.h": "c"
     },
     "nrf-connect.debugging.bindings": {
         "${workspaceFolder}/build/mastermind": "Launch mastermind"

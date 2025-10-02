@@ -17,7 +17,6 @@ class led_strip
 public:
     bool init(void);
     void update_combination(combination &combi);
-    void update_clues();
     void refresh(void);
 
 private:

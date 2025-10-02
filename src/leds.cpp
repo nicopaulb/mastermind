@@ -1,11 +1,4 @@
-#include <errno.h>
-#include <string.h>
-#include "etl/algorithm.h"
-
-#define LOG_LEVEL 4
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(leds);
-
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/led_strip.h>
 #include <zephyr/device.h>
@@ -13,6 +6,14 @@ LOG_MODULE_REGISTER(leds);
 #include <zephyr/sys/util.h>
 
 #include "leds.hpp"
+
+#define LOG_LEVEL 4
+
+LOG_MODULE_REGISTER(leds);
+
+#define LED_OFF RGB(0x00, 0x00, 0x00)
+#define LED_CORRECT RGB(0x00, 0xFF, 0x00)
+#define LED_WRONG_POS RGB(0xFF, 0xFF, 0x00)
 
 static const struct led_rgb code_colors[] = {
     RGB(0xFF, 0xFF, 0xFF), // white
@@ -36,17 +37,36 @@ bool led_strip::init(void)
 
 void led_strip::update_combination(combination &combi)
 {
-    for (int i = 0; i < combi.values.size(); i++)
-    {
-        leds[i] = code_colors[int(combi.values[i].value)];
-    }
-}
+    uint8_t clues_nb = 0;
 
-void led_strip::update_clues()
-{
-    for (int i = 0; i < SLOT_NB; i++)
+    // Set combi LEDs
+    for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
     {
-        leds[i + SLOT_NB] = code_colors[0];
+        if (combi.slots[i].set)
+        {
+            leds[i] = code_colors[int(combi.slots[i].value)];
+        }
+        else
+        {
+            leds[i] = LED_OFF;
+        }
+    }
+
+    // Set clues LEDs
+    for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
+    {
+        if (i < combi.clues_correct)
+        {
+            leds[STRIP_NUM_LEDS/2 + i] = LED_CORRECT;
+        }
+        else if (i < combi.clues_correct + combi.clues_present)
+        {
+            leds[STRIP_NUM_LEDS/2 + i] = LED_WRONG_POS;
+        }
+        else
+        {
+            leds[STRIP_NUM_LEDS/2 + i] = LED_OFF;
+        }
     }
 }
 

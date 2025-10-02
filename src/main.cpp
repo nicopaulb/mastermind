@@ -1,27 +1,118 @@
-#include <errno.h>
-#include <string.h>
 
-#define LOG_LEVEL 4
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(main);
-
 #include <zephyr/kernel.h>
-#include <zephyr/drivers/led_strip.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers/spi.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/smf.h>
 
 #include "combination.hpp"
 #include "leds.hpp"
 #include "buttons.hpp"
 
+#define LOG_LEVEL 4
+
+LOG_MODULE_REGISTER(main);
+
+enum state
+{
+	STATE_START,
+	STATE_INPUT,
+	STATE_CLUES,
+	STATE_END
+};
+
+static void state_start_run(void *o);
+static void state_input_run(void *o);
+static void state_clues_run(void *o);
+static void state_end_run(void *o);
+
 static led_strip leds;
 static buttons buts;
+combination code;
+combination tentative;
+
+static const struct smf_state states[] = {
+	[STATE_START] = SMF_CREATE_STATE(NULL, state_start_run, NULL, NULL, NULL),
+	[STATE_INPUT] = SMF_CREATE_STATE(NULL, state_input_run, NULL, NULL, NULL),
+	[STATE_CLUES] = SMF_CREATE_STATE(NULL, state_clues_run, NULL, NULL, NULL),
+	[STATE_END] = SMF_CREATE_STATE(NULL, state_end_run, NULL, NULL, NULL),
+};
+
+struct s_object
+{
+	struct smf_ctx ctx;
+} s_obj;
+
+static void state_start_run(void *o)
+{
+	code.random_fill();
+	tentative.unset_all();
+	leds.update_combination(tentative);
+	leds.refresh();
+	smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
+}
+
+static void state_input_run(void *o)
+{
+	uint8_t slot_left = 0;
+
+	button_val val = buts.wait_for_input(K_FOREVER);
+	switch (val)
+	{
+	case button_val::BUTTON_VAL_1:
+	case button_val::BUTTON_VAL_2:
+	case button_val::BUTTON_VAL_3:
+	case button_val::BUTTON_VAL_4:
+	case button_val::BUTTON_VAL_5:
+	case button_val::BUTTON_VAL_6:
+		slot_left = tentative.set_slot_next(static_cast<slot_value>(val));
+		break;
+	case button_val::BUTTON_VAL_NONE:
+		LOG_ERR("None button pressed");
+		break;
+	default:
+		LOG_ERR("Unknown button pressed");
+		break;
+	}
+
+	if (slot_left == 0)
+	{
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CLUES]);
+	}
+	else
+	{
+		leds.update_combination(tentative);
+		leds.refresh();
+	}
+
+}
+
+static void state_clues_run(void *o)
+{
+	LOG_INF("All slot filled, showing clues");
+	bool guessed = tentative.compute_clues(code);
+	leds.update_combination(tentative);
+	leds.refresh();
+
+	if(guessed) {
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END]);
+	}
+	else {
+		tentative.unset_all();
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
+	}
+}
+
+static void state_end_run(void *o)
+{
+	LOG_INF("WIN !");
+	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
+}
+
 
 int main(void)
 {
-	combination code;
-	combination tentative;
+	int32_t ret;
 
 	if (!buts.init())
 	{
@@ -33,29 +124,11 @@ int main(void)
 		return 1;
 	}
 
-	code.random_fill();
-
-	leds.update_combination(code);
-	leds.update_clues();
-	leds.refresh();
-	struct k_poll_signal *signal = buttons::get_signal();
-	struct k_poll_event events[1] = {
-		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
-								 K_POLL_MODE_NOTIFY_ONLY,
-								 signal),
-	};
+	smf_set_initial(SMF_CTX(&s_obj), &states[STATE_START]);
 
 	while (1)
 	{
-		k_poll(events, 1, K_FOREVER);
-		unsigned int signaled;
-		int result;
-		k_poll_signal_check(signal, &signaled, &result);
-
-		if (signaled && (result == 0x1337))
-		{
-			LOG_INF("Buttons event");
-		}
+		smf_run_state(SMF_CTX(&s_obj));
 	}
 
 	return 1;

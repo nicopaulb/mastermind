@@ -9,7 +9,7 @@
 
 enum class slot_value : uint8_t
 {
-    SLOT_VAL_1,
+    SLOT_VAL_1 = 0,
     SLOT_VAL_2,
     SLOT_VAL_3,
     SLOT_VAL_4,
@@ -27,12 +27,16 @@ struct slot
 
 class combination
 {
-
+    
 public:
-    etl::array<slot, SLOT_NB> values;
-    bool guessed = false;
+    combination();
+    etl::array<slot, SLOT_NB> slots;
+    uint8_t clues_correct;
+    uint8_t clues_present;
     void random_fill(void);
-    void unset(void);
+    void unset_all(void);
     void set_slot(int index, slot_value value);
+    int set_slot_next(slot_value value);
+    bool compute_clues(combination code);
 };
 #endif

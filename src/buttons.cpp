@@ -1,9 +1,4 @@
-#include <errno.h>
-#include <string.h>
-
-#define LOG_LEVEL 4
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(buttons);
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -12,16 +7,50 @@ LOG_MODULE_REGISTER(buttons);
 #include "buttons.hpp"
 #include "combination.hpp"
 
+#define LOG_LEVEL 4
+
+LOG_MODULE_REGISTER(buttons);
+
 static struct k_poll_signal signal;
 
 static void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-	k_poll_signal_raise(&signal, 0x1337);
+	k_poll_signal_raise(&signal, pins);
 }
 
-struct k_poll_signal *buttons::get_signal(void)
+button_val buttons::wait_for_input(k_timeout_t timeout)
 {
-	return &signal;
+	unsigned int signaled;
+	int result;
+	int index = 0;
+	button_val ret = button_val::BUTTON_VAL_NONE;
+	struct k_poll_event events[1] = {
+		K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+								 K_POLL_MODE_NOTIFY_ONLY,
+								 &signal),
+	};
+
+	k_poll(events, 1, timeout);
+	k_poll_signal_check(&signal, &signaled, &result);
+
+	if (signaled)
+	{
+		for (const auto &i : specs)
+		{
+			if(BIT(i.pin) == result) {
+				ret = static_cast<button_val>(index);
+				break;
+			}
+			index++;
+		}
+	}
+	else {
+		ret = button_val::BUTTON_VAL_NONE;
+	}
+
+	k_poll_signal_reset(&signal);
+	events[0].state = K_POLL_STATE_NOT_READY;
+	return ret;
 }
 
 bool buttons::init(void)
