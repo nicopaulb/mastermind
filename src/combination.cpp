@@ -20,7 +20,6 @@ void combination::random_fill(void)
 	{
 		slot.value = static_cast<slot_value>(sys_rand8_get() % int(slot_value::SLOT_VAL_MAX));
 		slot.set = true;
-		slot.correct = false;
 	}
 }
 
@@ -29,7 +28,6 @@ void combination::unset_all(void)
 	for (auto &slot : slots)
 	{
 		slot.set = false;
-		slot.correct = false;
 	}
 
 	clues_correct = 0;
@@ -40,7 +38,6 @@ void combination::set_slot(int index, slot_value new_value)
 {
 	slots[index].value = new_value;
 	slots[index].set = true;
-	slots[index].correct = false;
 }
 
 int combination::set_slot_next(slot_value new_value)
@@ -67,33 +64,36 @@ bool combination::compute_clues(combination code)
 	clues_present = 0;
 
 	// First loop for checking correct value and position
-	for (uint8_t i = 0; i < slots.size(); i++)
+	for (uint8_t i = 0; i < code.slots.size(); i++)
 	{
 		if (code.slots[i].value == slots[i].value)
 		{
 			clues_correct++;
-			slots[i].correct = true;
+			code.slots[i].value = slot_value::SLOT_VAL_MAX;
 		}
 	}
 
 	// Second loop for checking correct value but wrong position
-	for (uint8_t i = 0; i < slots.size(); i++)
+	for (uint8_t i = 0; i < code.slots.size(); i++)
 	{
-		if (!slots[i].correct)
+		if (code.slots[i].value == slot_value::SLOT_VAL_MAX)
 		{
-			for (uint8_t j = 0; j < code.slots.size(); j++)
+			// Skip slot already used
+			continue;
+		}
+
+		for (uint8_t j = 0; j < slots.size(); j++)
+		{
+			if (code.slots[j].value == slot_value::SLOT_VAL_MAX)
 			{
-				if (slots[j].correct)
-				{
-					// Skip if position is already correct
-					continue;
-				}
-				
-				if (code.slots[j].value == slots[i].value)
-				{
-					clues_present++;
-					break;
-				}
+				// Skip slot already used
+				continue;
+			}
+
+			if (code.slots[j].value == slots[i].value)
+			{
+				clues_present++;
+				break;
 			}
 		}
 	}

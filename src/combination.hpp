@@ -22,7 +22,6 @@ struct slot
 {
     slot_value value;
     bool set;
-    bool correct;
 };
 
 class combination
