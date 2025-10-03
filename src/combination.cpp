@@ -99,5 +99,5 @@ bool combination::compute_clues(combination code)
 	}
 
 	LOG_INF("Correct : %d - Present : %d", clues_correct, clues_present);
-	return clues_present == slots.size();
+	return clues_correct == slots.size();
 }
