@@ -9,6 +9,7 @@
 #include "leds.hpp"
 #include "buttons.hpp"
 
+#define MAX_TRY 10
 #define LOG_LEVEL 4
 
 LOG_MODULE_REGISTER(main);
@@ -18,24 +19,28 @@ enum state
 	STATE_START,
 	STATE_INPUT,
 	STATE_CLUES,
-	STATE_END
+	STATE_END_WIN,
+	STATE_END_LOST
 };
 
 static void state_start_run(void *o);
 static void state_input_run(void *o);
 static void state_clues_run(void *o);
-static void state_end_run(void *o);
+static void state_end_win_run(void *o);
+static void state_end_lost_run(void *o);
 
 static led_strip leds;
 static buttons buts;
-combination code;
-combination tentative;
+static combination code;
+static combination tentatives[MAX_TRY];
+static uint8_t try_nb;
 
 static const struct smf_state states[] = {
 	[STATE_START] = SMF_CREATE_STATE(NULL, state_start_run, NULL, NULL, NULL),
 	[STATE_INPUT] = SMF_CREATE_STATE(NULL, state_input_run, NULL, NULL, NULL),
 	[STATE_CLUES] = SMF_CREATE_STATE(NULL, state_clues_run, NULL, NULL, NULL),
-	[STATE_END] = SMF_CREATE_STATE(NULL, state_end_run, NULL, NULL, NULL),
+	[STATE_END_WIN] = SMF_CREATE_STATE(NULL, state_end_win_run, NULL, NULL, NULL),
+	[STATE_END_LOST] = SMF_CREATE_STATE(NULL, state_end_lost_run, NULL, NULL, NULL),
 };
 
 struct s_object
@@ -45,9 +50,10 @@ struct s_object
 
 static void state_start_run(void *o)
 {
+	try_nb = 0;
 	code.random_fill();
-	tentative.unset_all();
-	leds.update_combination(tentative);
+	tentatives[try_nb].unset_all();
+	leds.update_combination(tentatives[try_nb]);
 	leds.refresh();
 	smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
 }
@@ -65,7 +71,7 @@ static void state_input_run(void *o)
 	case button_val::BUTTON_VAL_4:
 	case button_val::BUTTON_VAL_5:
 	case button_val::BUTTON_VAL_6:
-		slot_left = tentative.set_slot_next(static_cast<slot_value>(val));
+		slot_left = tentatives[try_nb].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
 		LOG_ERR("None button pressed");
@@ -81,7 +87,7 @@ static void state_input_run(void *o)
 	}
 	else
 	{
-		leds.update_combination(tentative);
+		leds.update_combination(tentatives[try_nb]);
 		leds.refresh();
 	}
 
@@ -89,26 +95,36 @@ static void state_input_run(void *o)
 
 static void state_clues_run(void *o)
 {
-	LOG_INF("All slot filled, showing clues");
-	bool guessed = tentative.compute_clues(code);
-	leds.update_combination(tentative);
+	LOG_INF("[Combi %d] All slot filled, showing clues", try_nb);
+	bool guessed = tentatives[try_nb].compute_clues(code);
+	leds.update_combination(tentatives[try_nb++]);
 	leds.refresh();
 
 	if(guessed) {
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END]);
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_WIN]);
+	}
+	else if(try_nb >= MAX_TRY) {
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_LOST]);
 	}
 	else {
-		tentative.unset_all();
+		tentatives[try_nb].unset_all();
 		smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
 	}
 }
 
-static void state_end_run(void *o)
+static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
 	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
 }
 
+static void state_end_lost_run(void *o)
+{
+	LOG_INF("LOST !");
+	leds.update_combination(code);
+	leds.refresh();
+	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
+}
 
 int main(void)
 {
