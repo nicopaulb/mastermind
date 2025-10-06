@@ -101,3 +101,7 @@ bool combination::compute_clues(combination code)
 	LOG_INF("Correct : %d - Present : %d", clues_correct, clues_present);
 	return clues_correct == slots.size();
 }
+
+void combination::to_buf() {
+	
+}

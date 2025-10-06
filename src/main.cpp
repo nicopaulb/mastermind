@@ -8,6 +8,7 @@
 #include "combination.hpp"
 #include "leds.hpp"
 #include "buttons.hpp"
+#include "ble.hpp"
 
 #define MAX_TRY 10
 #define LOG_LEVEL 4
@@ -61,7 +62,6 @@ static void state_start_run(void *o)
 static void state_input_run(void *o)
 {
 	uint8_t slot_left = 0;
-
 	button_val val = buts.wait_for_input(K_FOREVER);
 	switch (val)
 	{
@@ -139,6 +139,8 @@ int main(void)
 	{
 		return 1;
 	}
+
+	ble_init();
 
 	smf_set_initial(SMF_CTX(&s_obj), &states[STATE_START]);
 

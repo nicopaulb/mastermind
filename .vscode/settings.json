@@ -32,7 +32,8 @@
         "xutility": "cpp",
         "ratio": "cpp",
         "chrono": "cpp",
-        "smf.h": "c"
+        "smf.h": "c",
+        "compare": "cpp"
     },
     "nrf-connect.debugging.bindings": {
         "${workspaceFolder}/build/mastermind": "Launch mastermind"
