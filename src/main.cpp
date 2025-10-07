@@ -9,8 +9,8 @@
 #include "leds.hpp"
 #include "buttons.hpp"
 #include "ble.hpp"
+#include "app_cfg.hpp"
 
-#define MAX_TRY 10
 #define LOG_LEVEL 4
 
 LOG_MODULE_REGISTER(main);
@@ -33,8 +33,8 @@ static void state_end_lost_run(void *o);
 static led_strip leds;
 static buttons buts;
 static combination code;
-static combination tentatives[MAX_TRY];
-static uint8_t try_nb;
+static etl::array<combination, MAX_TRY> tentatives;
+static uint8_t try_id;
 
 static const struct smf_state states[] = {
 	[STATE_START] = SMF_CREATE_STATE(NULL, state_start_run, NULL, NULL, NULL),
@@ -51,10 +51,10 @@ struct s_object
 
 static void state_start_run(void *o)
 {
-	try_nb = 0;
+	try_id = 0;
 	code.random_fill();
-	tentatives[try_nb].unset_all();
-	leds.update_combination(tentatives[try_nb]);
+	tentatives[try_id].unset_all();
+	leds.update_combination(tentatives[try_id]);
 	leds.refresh();
 	smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
 }
@@ -71,7 +71,7 @@ static void state_input_run(void *o)
 	case button_val::BUTTON_VAL_4:
 	case button_val::BUTTON_VAL_5:
 	case button_val::BUTTON_VAL_6:
-		slot_left = tentatives[try_nb].set_slot_next(static_cast<slot_value>(val));
+		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
 		LOG_ERR("None button pressed");
@@ -87,27 +87,31 @@ static void state_input_run(void *o)
 	}
 	else
 	{
-		leds.update_combination(tentatives[try_nb]);
+		leds.update_combination(tentatives[try_id]);
 		leds.refresh();
 	}
-
 }
 
 static void state_clues_run(void *o)
 {
-	LOG_INF("[Combi %d] All slot filled, showing clues", try_nb);
-	bool guessed = tentatives[try_nb].compute_clues(code);
-	leds.update_combination(tentatives[try_nb++]);
+	LOG_INF("[Combi %d] All slot filled, showing clues", try_id);
+	bool guessed = tentatives[try_id].compute_clues(code);
+	leds.update_combination(tentatives[try_id++]);
 	leds.refresh();
 
-	if(guessed) {
+	ble_update_status(tentatives, code, try_id);
+
+	if (guessed)
+	{
 		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_WIN]);
 	}
-	else if(try_nb >= MAX_TRY) {
+	else if (try_id >= tentatives.size())
+	{
 		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_LOST]);
 	}
-	else {
-		tentatives[try_nb].unset_all();
+	else
+	{
+		tentatives[try_id].unset_all();
 		smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
 	}
 }
@@ -128,8 +132,6 @@ static void state_end_lost_run(void *o)
 
 int main(void)
 {
-	int32_t ret;
-
 	if (!buts.init())
 	{
 		return 1;
@@ -140,7 +142,10 @@ int main(void)
 		return 1;
 	}
 
-	ble_init();
+	if (!ble_init())
+	{
+		return 1;
+	}
 
 	smf_set_initial(SMF_CTX(&s_obj), &states[STATE_START]);
 

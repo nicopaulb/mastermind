@@ -26,7 +26,7 @@ struct slot
 
 class combination
 {
-    
+
 public:
     combination();
     etl::array<slot, SLOT_NB> slots;
@@ -37,5 +37,6 @@ public:
     void set_slot(int index, slot_value value);
     int set_slot_next(slot_value value);
     bool compute_clues(combination code);
+    uint8_t *serialize(uint8_t *buf);
 };
 #endif

@@ -5,7 +5,6 @@
 #include <zephyr/drivers/gpio.h>
 
 #include "buttons.hpp"
-#include "combination.hpp"
 
 #define LOG_LEVEL 4
 
@@ -13,11 +12,24 @@ LOG_MODULE_REGISTER(buttons);
 
 static struct k_poll_signal signal;
 
+/**
+ * @brief Raise a signal based on the pressed button.
+ *
+ * @param dev The device that triggered the callback.
+ * @param cb The callback structure.
+ * @param pins The pin number of the pressed button.
+ */
 static void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
 	k_poll_signal_raise(&signal, pins);
 }
 
+/**
+ * @brief Wait for a button press event with a given timeout.
+ *
+ * @param timeout The timeout in milliseconds.
+ * @return The button value of the pressed button, or BUTTON_VAL_NONE if no event was received.
+ */
 button_val buttons::wait_for_input(k_timeout_t timeout)
 {
 	unsigned int signaled;
@@ -37,14 +49,16 @@ button_val buttons::wait_for_input(k_timeout_t timeout)
 	{
 		for (const auto &i : specs)
 		{
-			if(BIT(i.pin) == result) {
+			if (BIT(i.pin) == result)
+			{
 				ret = static_cast<button_val>(index);
 				break;
 			}
 			index++;
 		}
 	}
-	else {
+	else
+	{
 		ret = button_val::BUTTON_VAL_NONE;
 	}
 
@@ -53,6 +67,11 @@ button_val buttons::wait_for_input(k_timeout_t timeout)
 	return ret;
 }
 
+/**
+ * @brief Initialise the buttons module.
+ *
+ * @return true if the initialization was successful, false otherwise.
+ */
 bool buttons::init(void)
 {
 	int ret;

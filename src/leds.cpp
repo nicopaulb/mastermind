@@ -24,6 +24,11 @@ static const struct led_rgb code_colors[] = {
     RGB(0xFF, 0x00, 0xFF)  // magenta
 };
 
+/**
+ * @brief Initialise the LEDs module.
+ *
+ * @return true if the initialization was successful, false otherwise.
+ */
 bool led_strip::init(void)
 {
     LOG_INF("Initializing LEDs");
@@ -35,6 +40,14 @@ bool led_strip::init(void)
     return true;
 }
 
+/**
+ * @brief Update LEDs according to the given combination
+ *
+ * The first half of the strip is used to display the combination,
+ * and the second half is used to display the clues.
+ *
+ * @param combi The combination to be displayed
+ */
 void led_strip::update_combination(combination &combi)
 {
     uint8_t clues_nb = 0;
@@ -57,19 +70,22 @@ void led_strip::update_combination(combination &combi)
     {
         if (i < combi.clues_correct)
         {
-            leds[STRIP_NUM_LEDS/2 + i] = LED_CORRECT;
+            leds[STRIP_NUM_LEDS / 2 + i] = LED_CORRECT;
         }
         else if (i < combi.clues_correct + combi.clues_present)
         {
-            leds[STRIP_NUM_LEDS/2 + i] = LED_WRONG_POS;
+            leds[STRIP_NUM_LEDS / 2 + i] = LED_WRONG_POS;
         }
         else
         {
-            leds[STRIP_NUM_LEDS/2 + i] = LED_OFF;
+            leds[STRIP_NUM_LEDS / 2 + i] = LED_OFF;
         }
     }
 }
 
+/**
+ * @brief Refresh the LEDs on the strip
+ */
 void led_strip::refresh(void)
 {
     LOG_INF("Refreshing LEDs on strip");

@@ -14,6 +14,9 @@ combination::combination(void)
 	unset_all();
 }
 
+/**
+ * @brief Randomly fill the combination slots.
+ */
 void combination::random_fill(void)
 {
 	for (auto &slot : slots)
@@ -23,6 +26,9 @@ void combination::random_fill(void)
 	}
 }
 
+/**
+ * @brief Unset all slots in the combination.
+ */
 void combination::unset_all(void)
 {
 	for (auto &slot : slots)
@@ -40,6 +46,13 @@ void combination::set_slot(int index, slot_value new_value)
 	slots[index].set = true;
 }
 
+/**
+ * @brief Set the value of the next unset slot.
+ *
+ * @param new_value The value to set in the next unset slot.
+ *
+ * @return The number of unset slots left after the operation.
+ */
 int combination::set_slot_next(slot_value new_value)
 {
 	int slot_left = slots.size();
@@ -58,6 +71,13 @@ int combination::set_slot_next(slot_value new_value)
 	return slot_left;
 }
 
+/**
+ * @brief Compute the correct and present clues from the given combination code
+ *
+ * @param code Combination code to check against
+ *
+ * @return True if all slots are correct, false otherwise
+ */
 bool combination::compute_clues(combination code)
 {
 	clues_correct = 0;
@@ -102,6 +122,24 @@ bool combination::compute_clues(combination code)
 	return clues_correct == slots.size();
 }
 
-void combination::to_buf() {
-	
+/**
+ * @brief Serialize the object in the passed buffer.
+ *
+ * The combination data is serialized in the following order:
+ * - The values of the slots, stored in the slots array.
+ * - The number of present clues.
+ * - The number of correct clues.
+ *
+ * @param buf The buffer to serialize the data to.
+ *
+ * @return A pointer to the end of the serialized data.
+ */
+uint8_t *combination::serialize(uint8_t *buf)
+{
+	memcpy(buf, slots.data(), sizeof(slots));
+	buf += sizeof(slots);
+	memcpy(buf, &clues_present, sizeof(clues_present));
+	buf += sizeof(clues_present);
+	memcpy(buf, &clues_correct, sizeof(clues_correct));
+	return buf + sizeof(clues_correct);
 }
