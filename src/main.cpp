@@ -36,11 +36,14 @@ static void state_end_win_run(void *o);
 static void state_end_lost_run(void *o);
 static void state_off_run(void *o);
 
+// FSM state variables
 static led_strip leds;
 static buttons buts;
 static combination code;
 static etl::array<combination, MAX_TRY> tentatives;
 static uint8_t try_id;
+static bool manual_mode;
+static struct smf_ctx ctx;
 
 static const struct smf_state states[] = {
 	[STATE_START] = SMF_CREATE_STATE(NULL, state_start_run, NULL, NULL, NULL),
@@ -52,24 +55,18 @@ static const struct smf_state states[] = {
 	[STATE_OFF] = SMF_CREATE_STATE(NULL, state_off_run, NULL, NULL, NULL),
 };
 
-static struct s_object
-{
-	struct smf_ctx ctx;
-	bool manual_mode;
-} s_obj;
-
 static void state_start_run(void *o)
 {
 	try_id = 0;
 	tentatives[try_id].unset_all();
 	leds.reset();
 
-	if (!s_obj.manual_mode)
+	if (!manual_mode)
 	{
 		code.random_fill();
 	}
 
-	smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
+	smf_set_state(&ctx, &states[STATE_CHECK_CMD]);
 }
 
 static void state_check_cmd_run(void *o)
@@ -94,17 +91,17 @@ static void state_check_cmd_run(void *o)
 			break;
 		case BT_COMMAND_CODE:
 			LOG_INF("Executing 'Code' command");
+			// TODO fill code combination
+			manual_mode = true;
 			break;
 		default:
 			LOG_ERR("Unknown command");
-			// TODO fill code combination
-			s_obj.manual_mode = true;
 			break;
 		}
 		cmds.set(pos, false);
 	}
 
-	smf_set_state(SMF_CTX(&s_obj), next_state);
+	smf_set_state(&ctx, next_state);
 }
 
 static void state_check_input_run(void *o)
@@ -122,7 +119,7 @@ static void state_check_input_run(void *o)
 		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
+		smf_set_state(&ctx, &states[STATE_CHECK_CMD]);
 		return;
 	default:
 		LOG_ERR("Unknown button pressed");
@@ -131,7 +128,7 @@ static void state_check_input_run(void *o)
 
 	if (slot_left == 0)
 	{
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CLUES]);
+		smf_set_state(&ctx, &states[STATE_CLUES]);
 	}
 	else
 	{
@@ -151,23 +148,23 @@ static void state_clues_run(void *o)
 
 	if (guessed)
 	{
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_WIN]);
+		smf_set_state(&ctx, &states[STATE_END_WIN]);
 	}
 	else if (try_id >= tentatives.size())
 	{
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_END_LOST]);
+		smf_set_state(&ctx, &states[STATE_END_LOST]);
 	}
 	else
 	{
 		tentatives[try_id].unset_all();
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
+		smf_set_state(&ctx, &states[STATE_CHECK_CMD]);
 	}
 }
 
 static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
-	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
+	smf_set_state(&ctx, &states[STATE_START]);
 }
 
 static void state_end_lost_run(void *o)
@@ -175,7 +172,7 @@ static void state_end_lost_run(void *o)
 	LOG_INF("LOST !");
 	leds.update_combination(code);
 	leds.refresh();
-	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
+	smf_set_state(&ctx, &states[STATE_START]);
 }
 
 static void state_off_run(void *o)
@@ -203,12 +200,12 @@ int main(void)
 		return 1;
 	}
 
-	s_obj.manual_mode = false;
-	smf_set_initial(SMF_CTX(&s_obj), &states[STATE_START]);
+	manual_mode = false;
+	smf_set_initial(&ctx, &states[STATE_START]);
 
 	while (1)
 	{
-		smf_run_state(SMF_CTX(&s_obj));
+		smf_run_state(&ctx);
 	}
 
 	return 1;
