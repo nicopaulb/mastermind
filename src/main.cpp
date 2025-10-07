@@ -4,7 +4,9 @@
 #include <zephyr/device.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/smf.h>
+#include <zephyr/sys/poweroff.h>
 
+#include "etl/array.h"
 #include "combination.hpp"
 #include "leds.hpp"
 #include "buttons.hpp"
@@ -18,17 +20,21 @@ LOG_MODULE_REGISTER(main);
 enum state
 {
 	STATE_START,
-	STATE_INPUT,
+	STATE_CHECK_INPUT,
+	STATE_CHECK_CMD,
 	STATE_CLUES,
 	STATE_END_WIN,
-	STATE_END_LOST
+	STATE_END_LOST,
+	STATE_OFF
 };
 
 static void state_start_run(void *o);
-static void state_input_run(void *o);
+static void state_check_input_run(void *o);
+static void state_check_cmd_run(void *o);
 static void state_clues_run(void *o);
 static void state_end_win_run(void *o);
 static void state_end_lost_run(void *o);
+static void state_off_run(void *o);
 
 static led_strip leds;
 static buttons buts;
@@ -38,31 +44,73 @@ static uint8_t try_id;
 
 static const struct smf_state states[] = {
 	[STATE_START] = SMF_CREATE_STATE(NULL, state_start_run, NULL, NULL, NULL),
-	[STATE_INPUT] = SMF_CREATE_STATE(NULL, state_input_run, NULL, NULL, NULL),
+	[STATE_CHECK_INPUT] = SMF_CREATE_STATE(NULL, state_check_input_run, NULL, NULL, NULL),
+	[STATE_CHECK_CMD] = SMF_CREATE_STATE(NULL, state_check_cmd_run, NULL, NULL, NULL),
 	[STATE_CLUES] = SMF_CREATE_STATE(NULL, state_clues_run, NULL, NULL, NULL),
 	[STATE_END_WIN] = SMF_CREATE_STATE(NULL, state_end_win_run, NULL, NULL, NULL),
 	[STATE_END_LOST] = SMF_CREATE_STATE(NULL, state_end_lost_run, NULL, NULL, NULL),
+	[STATE_OFF] = SMF_CREATE_STATE(NULL, state_off_run, NULL, NULL, NULL),
 };
 
-struct s_object
+static struct s_object
 {
 	struct smf_ctx ctx;
+	bool manual_mode;
 } s_obj;
 
 static void state_start_run(void *o)
 {
 	try_id = 0;
-	code.random_fill();
 	tentatives[try_id].unset_all();
-	leds.update_combination(tentatives[try_id]);
-	leds.refresh();
-	smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
+	leds.reset();
+
+	if (!s_obj.manual_mode)
+	{
+		code.random_fill();
+	}
+
+	smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
 }
 
-static void state_input_run(void *o)
+static void state_check_cmd_run(void *o)
+{
+	etl::bitset<BT_COMMAND_COUNT> &cmds = ble_get_commands();
+	etl::array<uint8_t, BT_COMMAND_BUF_SIZE> &buf = ble_get_command_buf();
+	const struct smf_state *next_state = &states[STATE_CHECK_INPUT];
+	uint8_t pos = 0;
+
+	while (cmds.any())
+	{
+		pos = cmds.find_first(true);
+		switch (pos)
+		{
+		case BT_COMMAND_RESET:
+			LOG_INF("Executing 'Reset' command");
+			next_state = &states[STATE_START];
+			break;
+		case BT_COMMAND_OFF:
+			LOG_INF("Executing 'Off' command");
+			sys_poweroff();
+			break;
+		case BT_COMMAND_CODE:
+			LOG_INF("Executing 'Code' command");
+			break;
+		default:
+			LOG_ERR("Unknown command");
+			// TODO fill code combination
+			s_obj.manual_mode = true;
+			break;
+		}
+		cmds.set(pos, false);
+	}
+
+	smf_set_state(SMF_CTX(&s_obj), next_state);
+}
+
+static void state_check_input_run(void *o)
 {
 	uint8_t slot_left = 0;
-	button_val val = buts.wait_for_input(K_FOREVER);
+	button_val val = buts.wait_for_input(K_MSEC(1000));
 	switch (val)
 	{
 	case button_val::BUTTON_VAL_1:
@@ -74,8 +122,8 @@ static void state_input_run(void *o)
 		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
-		LOG_ERR("None button pressed");
-		break;
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
+		return;
 	default:
 		LOG_ERR("Unknown button pressed");
 		break;
@@ -112,7 +160,7 @@ static void state_clues_run(void *o)
 	else
 	{
 		tentatives[try_id].unset_all();
-		smf_set_state(SMF_CTX(&s_obj), &states[STATE_INPUT]);
+		smf_set_state(SMF_CTX(&s_obj), &states[STATE_CHECK_CMD]);
 	}
 }
 
@@ -128,6 +176,14 @@ static void state_end_lost_run(void *o)
 	leds.update_combination(code);
 	leds.refresh();
 	smf_set_state(SMF_CTX(&s_obj), &states[STATE_START]);
+}
+
+static void state_off_run(void *o)
+{
+
+	LOG_INF("Powering off");
+	leds.reset();
+	sys_poweroff();
 }
 
 int main(void)
@@ -147,6 +203,7 @@ int main(void)
 		return 1;
 	}
 
+	s_obj.manual_mode = false;
 	smf_set_initial(SMF_CTX(&s_obj), &states[STATE_START]);
 
 	while (1)

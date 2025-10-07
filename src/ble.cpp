@@ -1,7 +1,6 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
 #include <zephyr/bluetooth/conn.h>
@@ -10,6 +9,8 @@
 #include <zephyr/bluetooth/services/bas.h>
 #include <zephyr/bluetooth/services/hrs.h>
 
+#include "etl/bitset.h"
+#include "etl/array.h"
 #include "ble.hpp"
 #include "combination.hpp"
 #include "app_cfg.hpp"
@@ -34,6 +35,10 @@ static void exchange_mtu(struct bt_conn *conn, uint8_t att_err,
 static ssize_t read_status(struct bt_conn *conn,
                            const struct bt_gatt_attr *attr, void *buf,
                            uint16_t len, uint16_t offset);
+static ssize_t write_command(struct bt_conn *conn,
+                             const struct bt_gatt_attr *attr,
+                             const void *buf,
+                             uint16_t len, uint16_t offset, uint8_t flags);
 
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
@@ -48,6 +53,8 @@ static const struct bt_data sd[] = {
 static struct bt_conn *connection;
 static uint8_t status_buf[BLE_STATUS_BUF_SIZE] = {0};
 static uint8_t status_buf_len = 0;
+static etl::bitset<BT_COMMAND_COUNT> command_flags = 0;
+static etl::array<uint8_t, BT_COMMAND_BUF_SIZE> command_buf = {0};
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
     .connected = connected,
@@ -60,11 +67,10 @@ BT_GATT_SERVICE_DEFINE(mstr_svc,
                        BT_GATT_CHARACTERISTIC(BT_UUID_MSTR_STATUS_CHAR, BT_GATT_CHRC_NOTIFY | BT_GATT_CHRC_READ,
                                               BT_GATT_PERM_READ, read_status, NULL, NULL),
                        BT_GATT_CCC(NULL, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
-                       // BT_GATT_CHARACTERISTIC(BT_UUID_MSTR_RESET_CHAR,
-                       // 		       BT_GATT_CHRC_WRITE,
-                       // 		       BT_GATT_PERM_WRITE, NULL, write_ctrl_point,
-                       // 		       &sensor_location),
-);
+                       BT_GATT_CHARACTERISTIC(BT_UUID_MSTR_RESET_CHAR,
+                                              BT_GATT_CHRC_WRITE,
+                                              BT_GATT_PERM_WRITE, NULL, write_command,
+                                              NULL), );
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
@@ -124,6 +130,45 @@ static ssize_t read_status(struct bt_conn *conn,
     LOG_INF("Received request to read game status");
     return bt_gatt_attr_read(conn, attr, buf, len, offset,
                              &status_buf, status_buf_len);
+}
+
+static ssize_t write_command(struct bt_conn *conn,
+                             const struct bt_gatt_attr *attr,
+                             const void *buf,
+                             uint16_t len, uint16_t offset, uint8_t flags)
+{
+    uint8_t cmd = *((uint8_t *)buf);
+
+    LOG_INF("Received write command");
+
+    if (len < 1 || len > BT_COMMAND_BUF_SIZE + 1)
+    {
+        LOG_ERR("Incorrect data length");
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
+    }
+
+    if (offset != 0)
+    {
+        LOG_ERR("Incorrect data offset");
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    switch (cmd)
+    {
+    case BT_COMMAND_RESET:
+    case BT_COMMAND_OFF:
+    case BT_COMMAND_CODE:
+        LOG_INF("Valid command received");
+        command_flags.set(cmd, true);
+        break;
+    default:
+        LOG_ERR("Unknown command");
+        return BT_GATT_ERR(BT_ATT_ERR_VALUE_NOT_ALLOWED);
+    }
+
+    memcpy(command_buf.data(), ((uint8_t *)buf) + 1, len - 1);
+
+    return len;
 }
 
 /**
@@ -194,4 +239,24 @@ void ble_status_notify(void)
             LOG_ERR("Failed to send notification (err %d)", err);
         }
     }
+}
+
+/**
+ * @brief Returns a reference to the command flags bitset.
+ *
+ * @return A reference to the command flags bitset.
+ */
+etl::bitset<BT_COMMAND_COUNT> &ble_get_commands(void)
+{
+    return command_flags;
+}
+
+/**
+ * @brief Returns a reference to the command buffer array.
+ *
+ * @return A reference to the command buffer array.
+ */
+etl::array<uint8_t, BT_COMMAND_BUF_SIZE> &ble_get_command_buf(void)
+{
+    return command_buf;
 }

@@ -18,6 +18,7 @@ public:
     bool init(void);
     void update_combination(combination &combi);
     void refresh(void);
+    void reset(void);
 
 private:
     const struct device *const strip = DEVICE_DT_GET(DT_ALIAS(led_strip));

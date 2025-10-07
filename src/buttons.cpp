@@ -95,7 +95,7 @@ bool buttons::init(void)
 			return false;
 		}
 
-		ret = gpio_pin_interrupt_configure_dt(&i, GPIO_INT_EDGE_TO_ACTIVE);
+		ret = gpio_pin_interrupt_configure_dt(&i, GPIO_INT_LEVEL_ACTIVE);
 		if (ret < 0)
 		{
 			LOG_ERR("Couldn't configure pin interrupt: %d", ret);

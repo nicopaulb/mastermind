@@ -95,3 +95,13 @@ void led_strip::refresh(void)
         LOG_ERR("Couldn't update strip: %d", rc);
     }
 }
+
+void led_strip::reset(void)
+{
+    LOG_INF("Switch off LEDs on strip");
+    for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
+    {
+        leds[i] = LED_OFF;
+    }
+    refresh();
+}
