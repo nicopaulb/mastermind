@@ -1,0 +1,11 @@
+description: PWM-driven buzzer.
+
+compatible: "pwm-buzzer"
+
+include: base.yaml
+
+properties:
+  pwms:
+    required: true
+    type: phandle-array
+    description: PWM specifier driving the buzzer.

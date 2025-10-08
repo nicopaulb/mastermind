@@ -11,6 +11,7 @@
 #include "leds.hpp"
 #include "buttons.hpp"
 #include "ble.hpp"
+#include "buzzer.hpp"
 #include "app_cfg.hpp"
 
 #define LOG_LEVEL 4
@@ -170,6 +171,7 @@ static void state_clues_run(void *o)
 static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
+	k_sleep(K_SECONDS(5));
 	smf_set_state(&ctx, &states[STATE_START]);
 }
 
@@ -205,6 +207,8 @@ int main(void)
 	{
 		return 1;
 	}
+
+	buzzer_init();
 
 	manual_mode = false;
 	smf_set_initial(&ctx, &states[STATE_START]);
