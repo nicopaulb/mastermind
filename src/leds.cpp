@@ -98,8 +98,8 @@ void led_strip::refresh(void)
 
 void led_strip::reset(void)
 {
-    LOG_INF("Switch off LEDs on strip");
-    for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
+    LOG_INF("Switch off all LEDs on strip");
+    for (uint8_t i = 0; i < STRIP_NUM_LEDS; i++)
     {
         leds[i] = LED_OFF;
     }
