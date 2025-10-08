@@ -74,7 +74,7 @@ BT_GATT_SERVICE_DEFINE(mstr_svc,
 
 static void connected(struct bt_conn *conn, uint8_t err)
 {
-    struct bt_gatt_exchange_params params;
+    static struct bt_gatt_exchange_params params;
 
     if (err)
     {
@@ -223,6 +223,7 @@ void ble_update_status(etl::array<combination, MAX_TRY> &tentatives, combination
     status_buf_len = buf_ptr - &status_buf[0];
     ble_status_notify();
 }
+
 /**
  * @brief Notify the connected device about the game status.
  */
