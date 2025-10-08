@@ -63,6 +63,7 @@ static void state_start_run(void *o)
 
 	if (!manual_mode)
 	{
+		// If manual mode is disabled, generate a random code
 		code.random_fill();
 	}
 
@@ -91,8 +92,12 @@ static void state_check_cmd_run(void *o)
 			break;
 		case BT_COMMAND_CODE:
 			LOG_INF("Executing 'Code' command");
-			// TODO fill code combination
 			manual_mode = true;
+			for(uint8_t i = 0; i < code.slots.size(); i++) 
+			{
+				code.set_slot(i, static_cast<slot_value>(buf[i]));
+			}
+			next_state = &states[STATE_START];
 			break;
 		default:
 			LOG_ERR("Unknown command");

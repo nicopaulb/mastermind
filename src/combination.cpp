@@ -9,6 +9,11 @@
 
 LOG_MODULE_REGISTER(combination);
 
+/**
+ * @brief Combination object constructor.
+ *
+ * Resets all slots in the combination by calling unset_all().
+ */
 combination::combination(void)
 {
 	unset_all();
@@ -40,6 +45,12 @@ void combination::unset_all(void)
 	clues_present = 0;
 }
 
+/**
+ * @brief Set the value of the given slot in the combination.
+ *
+ * @param index The index of the slot to set.
+ * @param new_value The value to set in the given slot.
+ */
 void combination::set_slot(int index, slot_value new_value)
 {
 	slots[index].value = new_value;
