@@ -39,6 +39,7 @@ static void state_off_run(void *o);
 
 // FSM state variables
 static led_strip leds;
+static buzzer buzzer;
 static buttons buts;
 static combination code;
 static etl::array<combination, MAX_TRY> tentatives;
@@ -95,7 +96,7 @@ static void state_check_cmd_run(void *o)
 		case BT_COMMAND_CODE:
 			LOG_INF("Executing 'Code' command");
 			manual_mode = true;
-			for(uint8_t i = 0; i < code.slots.size(); i++) 
+			for (uint8_t i = 0; i < code.slots.size(); i++)
 			{
 				code.set_slot(i, static_cast<slot_value>(buf[i]));
 			}
@@ -208,7 +209,7 @@ int main(void)
 		return 1;
 	}
 
-	buzzer_init();
+	buzzer.init();
 
 	manual_mode = false;
 	smf_set_initial(&ctx, &states[STATE_START]);
