@@ -124,6 +124,7 @@ static void state_check_input_run(void *o)
 	case button_val::BUTTON_VAL_4:
 	case button_val::BUTTON_VAL_5:
 	case button_val::BUTTON_VAL_6:
+		buzzer.buzzer_play_input();
 		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
@@ -152,6 +153,8 @@ static void state_clues_run(void *o)
 	leds.update_combination(tentatives[try_id++]);
 	leds.refresh();
 
+	buzzer.buzzer_play_clues();
+
 	ble_update_status(tentatives, code, try_id);
 
 	if (guessed)
@@ -172,6 +175,7 @@ static void state_clues_run(void *o)
 static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
+	buzzer.buzzer_play_win();
 	k_sleep(K_SECONDS(5));
 	smf_set_state(&ctx, &states[STATE_START]);
 }
@@ -179,6 +183,7 @@ static void state_end_win_run(void *o)
 static void state_end_lost_run(void *o)
 {
 	LOG_INF("LOST !");
+	buzzer.buzzer_play_lose();
 	leds.update_combination(code);
 	leds.refresh();
 	smf_set_state(&ctx, &states[STATE_START]);
