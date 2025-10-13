@@ -69,6 +69,8 @@ static void state_start_run(void *o)
 		code.random_fill();
 	}
 
+	buzzer.buzzer_play_start();
+
 	ble_update_status(tentatives, code, try_id);
 	smf_set_state(&ctx, &states[STATE_CHECK_CMD]);
 }

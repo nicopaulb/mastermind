@@ -11,12 +11,25 @@
 
 LOG_MODULE_REGISTER(buzzer);
 
-static const etl::array<note_duration, 2> beep{{{200, 1000},
-                                                {500, 300}}};
+static const etl::array<note_duration, 4> start{{{500, 100},
+                                                 {600, 200},
+                                                 {800, 200},
+                                                 {500, 100}}};
 static const etl::array<note_duration, 1> button{{{400, 100}}};
 static const etl::array<note_duration, 1> clues{{{600, 200}}};
 static const etl::array<note_duration, 2> lose{{{392, 250}, {262, 500}}};
-static const etl::array<note_duration, 2> win{{{392, 250}, {262, 500}}};
+static const etl::array<note_duration, 12> win{{{880, 250},
+                                                {988, 250},
+                                                {523, 250},
+                                                {988, 250},
+                                                {523, 250},
+                                                {587, 250},
+                                                {523, 250},
+                                                {587, 250},
+                                                {659, 250},
+                                                {587, 250},
+                                                {659, 250},
+                                                {659, 250}}};
 
 K_THREAD_STACK_DEFINE(threadStack, BUZZER_STACK);
 buzzer::buzzer()
@@ -56,7 +69,8 @@ void buzzer::thread(void *object, void *d1, void *d2)
                 pwm_set_dt(&buzzer_obj->pwm_buzzer, PWM_HZ(elem.note),
                            PWM_HZ((elem.note)) / 2);
             }
-            if(k_msleep(elem.duration) > 0) {
+            if (k_msleep(elem.duration) > 0)
+            {
                 // If sleep is interrupted by another song request, immediatly stop the current song and restart the new one
                 restart_now = true;
                 break;
@@ -64,7 +78,8 @@ void buzzer::thread(void *object, void *d1, void *d2)
         }
 
         pwm_set_pulse_dt(&buzzer_obj->pwm_buzzer, 0);
-        if(!restart_now) {
+        if (!restart_now)
+        {
             k_sleep(K_FOREVER);
         }
     }
@@ -104,7 +119,7 @@ void buzzer::buzzer_play_button(void)
 
 void buzzer::buzzer_play_start(void)
 {
-    song.assign(beep.begin(), beep.end());
+    song.assign(start.begin(), start.end());
     k_wakeup(threadId);
 }
 
