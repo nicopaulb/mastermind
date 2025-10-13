@@ -332,15 +332,20 @@ class _DeviceScreenState extends State<DeviceScreen> {
     return Column(
       children: [
         buildTentativeListHeader(context),
-        ListView.builder(
-          padding: EdgeInsets.all(10.0),
-          shrinkWrap: true,
-          reverse: true,
-          itemCount: tentatives.length,
-          itemBuilder: (BuildContext context, int index) {
-            return Column(children: [buildTentativeItem(context, index), Divider()]);
-          },
-        ),
+        tentatives.isNotEmpty
+            ? ListView.builder(
+                padding: EdgeInsets.all(10.0),
+                shrinkWrap: true,
+                reverse: true,
+                itemCount: tentatives.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return Column(children: [buildTentativeItem(context, index), Divider()]);
+                },
+              )
+            : Container(
+                margin: EdgeInsets.symmetric(vertical: 10),
+                child: Text("No previous tries", style: TextStyle(fontSize: 15, color: Colors.grey)),
+              ),
       ],
     );
   }
@@ -483,7 +488,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Text(
-                '${endRound ? (won ? 'Round won\n' : "Round lost.\n") : ''}The correct code is :',
+                '${endRound ? (won ? 'Game won\n' : "Game lost.\n") : ''}The correct code is :',
                 style: TextStyle(fontWeight: FontWeight.bold, color: endRound ? (won ? Colors.green : Colors.red) : Colors.black),
               ),
               content: Column(
