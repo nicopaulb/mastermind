@@ -7,6 +7,7 @@
 #include "buttons.hpp"
 
 #define LOG_LEVEL 4
+#define DEBOUNCE_TIME 200
 
 LOG_MODULE_REGISTER(buttons);
 
@@ -21,7 +22,13 @@ static struct k_poll_signal signal;
  */
 static void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-	k_poll_signal_raise(&signal, pins);
+	static int64_t last_button_pressed = 0;
+	// Debounce all the buttons together, no concurrent button presses allowed
+	int64_t current_tick = k_uptime_get();
+	if(current_tick - last_button_pressed > DEBOUNCE_TIME) {
+		k_poll_signal_raise(&signal, pins);
+		last_button_pressed = current_tick;
+	}
 }
 
 /**
