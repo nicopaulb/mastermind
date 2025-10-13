@@ -87,11 +87,12 @@ static void state_check_cmd_run(void *o)
 		{
 		case BT_COMMAND_RESET:
 			LOG_INF("Executing 'Reset' command");
+			manual_mode = false;
 			next_state = &states[STATE_START];
 			break;
 		case BT_COMMAND_OFF:
 			LOG_INF("Executing 'Off' command");
-			sys_poweroff();
+			next_state = &states[STATE_OFF];
 			break;
 		case BT_COMMAND_CODE:
 			LOG_INF("Executing 'Code' command");
@@ -124,7 +125,7 @@ static void state_check_input_run(void *o)
 	case button_val::BUTTON_VAL_4:
 	case button_val::BUTTON_VAL_5:
 	case button_val::BUTTON_VAL_6:
-		buzzer.buzzer_play_input();
+		buzzer.buzzer_play_button();
 		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
@@ -176,7 +177,9 @@ static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
 	buzzer.buzzer_play_win();
+
 	k_sleep(K_SECONDS(5));
+	manual_mode = false;
 	smf_set_state(&ctx, &states[STATE_START]);
 }
 
@@ -186,12 +189,14 @@ static void state_end_lost_run(void *o)
 	buzzer.buzzer_play_lose();
 	leds.update_combination(code);
 	leds.refresh();
+
+	k_sleep(K_SECONDS(5));
+	manual_mode = false;
 	smf_set_state(&ctx, &states[STATE_START]);
 }
 
 static void state_off_run(void *o)
 {
-
 	LOG_INF("Powering off");
 	leds.reset();
 	sys_poweroff();
@@ -214,7 +219,10 @@ int main(void)
 		return 1;
 	}
 
-	buzzer.init();
+	if(!buzzer.init())
+	{
+		return 1;
+	}
 
 	manual_mode = false;
 	smf_set_initial(&ctx, &states[STATE_START]);

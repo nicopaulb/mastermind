@@ -13,6 +13,10 @@ LOG_MODULE_REGISTER(buzzer);
 
 static const etl::array<note_duration, 2> beep{{{200, 1000},
                                                 {500, 300}}};
+static const etl::array<note_duration, 1> button{{{400, 100}}};
+static const etl::array<note_duration, 1> clues{{{600, 200}}};
+static const etl::array<note_duration, 2> lose{{{392, 250}, {262, 500}}};
+static const etl::array<note_duration, 2> win{{{392, 250}, {262, 500}}};
 
 K_THREAD_STACK_DEFINE(threadStack, BUZZER_STACK);
 buzzer::buzzer()
@@ -34,10 +38,12 @@ buzzer::buzzer()
 void buzzer::thread(void *object, void *d1, void *d2)
 {
     buzzer *buzzer_obj = reinterpret_cast<buzzer *>(object);
+    bool restart_now = false;
     k_sem_take(&buzzer_obj->initialized, K_FOREVER);
 
     while (1)
     {
+        restart_now = false;
         for (auto elem : buzzer_obj->song)
         {
             if (elem.note == 0)
@@ -50,11 +56,17 @@ void buzzer::thread(void *object, void *d1, void *d2)
                 pwm_set_dt(&buzzer_obj->pwm_buzzer, PWM_HZ(elem.note),
                            PWM_HZ((elem.note)) / 2);
             }
-            k_msleep(elem.duration);
+            if(k_msleep(elem.duration) > 0) {
+                // If sleep is interrupted by another song request, immediatly stop the current song and restart the new one
+                restart_now = true;
+                break;
+            };
         }
 
         pwm_set_pulse_dt(&buzzer_obj->pwm_buzzer, 0);
-        k_sleep(K_FOREVER);
+        if(!restart_now) {
+            k_sleep(K_FOREVER);
+        }
     }
 }
 
@@ -84,9 +96,9 @@ bool buzzer::init(void)
  * @brief Play the beep sound.
  *
  */
-void buzzer::buzzer_play_input(void)
+void buzzer::buzzer_play_button(void)
 {
-    song.assign(beep.begin(), beep.end());
+    song.assign(button.begin(), button.end());
     k_wakeup(threadId);
 }
 
@@ -98,17 +110,18 @@ void buzzer::buzzer_play_start(void)
 
 void buzzer::buzzer_play_win(void)
 {
-    song.assign(beep.begin(), beep.end());
+    song.assign(win.begin(), win.end());
     k_wakeup(threadId);
 }
 
 void buzzer::buzzer_play_lose(void)
 {
-    song.assign(beep.begin(), beep.end());
+    song.assign(lose.begin(), lose.end());
     k_wakeup(threadId);
 }
+
 void buzzer::buzzer_play_clues(void)
 {
-    song.assign(beep.begin(), beep.end());
+    song.assign(clues.begin(), clues.end());
     k_wakeup(threadId);
 }
