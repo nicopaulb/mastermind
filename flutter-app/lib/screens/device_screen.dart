@@ -34,7 +34,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
   @override
   void initState() {
     super.initState();
-
+    bool roundWon = false;
     _connectionStateSubscription = widget.device.connectionState.listen((state) async {
       _connectionState = state;
       if (state == BluetoothConnectionState.connected) {
@@ -59,9 +59,19 @@ class _DeviceScreenState extends State<DeviceScreen> {
             code = Combination.fromBuffer(buf.sublist(0, 10));
 
             // Parse the tentatives
+            roundWon = false;
             tentatives.clear();
             for (int i = 0; i < buf[10]; i++) {
               tentatives.add(Combination.fromBuffer(buf.sublist(11 + i * 10, 21 + i * 10)));
+              if (tentatives[i].cluesCorrect == 4) {
+                roundWon = true;
+              }
+            }
+
+            if (roundWon) {
+              showCodeDialog(true, true);
+            } else if (tentatives.length == 10) {
+              showCodeDialog(true, false);
             }
 
             // Refresh the UI
@@ -216,7 +226,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
   Widget buildTentativeItem(BuildContext context, int index) {
     Combination tentative = tentatives[index];
     return SizedBox(
-      height: 45,
+      height: 40,
       child: Row(
         children: [
           Expanded(
@@ -349,7 +359,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
                 width: 150,
                 child: TextButton.icon(
                   onPressed: () {
-                    showCodeDialog();
+                    showCodeDialog(false, false);
                   },
                   icon: const Icon(Icons.lightbulb_rounded, size: 30),
                   label: const Text('Show Code'),
@@ -459,7 +469,7 @@ class _DeviceScreenState extends State<DeviceScreen> {
     );
   }
 
-  void showCodeDialog() {
+  void showCodeDialog(bool endRound, bool won) {
     if (code == null) {
       Snackbar.show(ABC.c, "Code was not received", success: false);
       return;
@@ -472,7 +482,10 @@ class _DeviceScreenState extends State<DeviceScreen> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('The correct code is', style: TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(
+                '${endRound ? (won ? 'Round won\n' : "Round lost.\n") : ''}The correct code is :',
+                style: TextStyle(fontWeight: FontWeight.bold, color: endRound ? (won ? Colors.green : Colors.red) : Colors.black),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
