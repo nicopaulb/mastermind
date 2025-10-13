@@ -5,9 +5,6 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import 'device_screen.dart';
 import '../utils/snackbar.dart';
-import '../widgets/system_device_tile.dart';
-import '../widgets/scan_result_tile.dart';
-import '../utils/extra.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -17,8 +14,6 @@ class ScanScreen extends StatefulWidget {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  List<BluetoothDevice> _systemDevices = [];
-  List<ScanResult> _scanResults = [];
   bool _isScanning = false;
   late StreamSubscription<List<ScanResult>> _scanResultsSubscription;
   late StreamSubscription<bool> _isScanningSubscription;
@@ -27,13 +22,22 @@ class _ScanScreenState extends State<ScanScreen> {
   void initState() {
     super.initState();
 
-    _scanResultsSubscription = FlutterBluePlus.scanResults.listen((results) {
-      if (mounted) {
-        setState(() => _scanResults = results);
-      }
-    }, onError: (e) {
-      Snackbar.show(ABC.b, prettyException("Scan Error:", e), success: false);
-    });
+    _scanResultsSubscription = FlutterBluePlus.scanResults.listen(
+      (results) {
+        if (results.isNotEmpty) {
+          FlutterBluePlus.stopScan();
+          BluetoothDevice device = results.first.device;
+          MaterialPageRoute route = MaterialPageRoute(
+            builder: (context) => DeviceScreen(device: device),
+            settings: RouteSettings(name: '/DeviceScreen'),
+          );
+          Navigator.of(context).push(route);
+        }
+      },
+      onError: (e) {
+        Snackbar.show(ABC.b, prettyException("Scan Error:", e), success: false);
+      },
+    );
 
     _isScanningSubscription = FlutterBluePlus.isScanning.listen((state) {
       if (mounted) {
@@ -50,15 +54,10 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future onScanPressed() async {
-    try {
-      // `withServices` is required on iOS for privacy purposes, ignored on android.
-      var withServices = [Guid("180a")];
-      _systemDevices = await FlutterBluePlus.systemDevices(withServices);
-    } catch (e, backtrace) {
-      Snackbar.show(ABC.b, prettyException("System Devices Error:", e), success: false);
-      print(e);
-      print("backtrace: $backtrace");
+    if (_isScanning) {
+      return;
     }
+
     try {
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 15),
@@ -79,114 +78,28 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future onStopPressed() async {
-    try {
-      FlutterBluePlus.stopScan();
-    } catch (e, backtrace) {
-      Snackbar.show(ABC.b, prettyException("Stop Scan Error:", e), success: false);
-      print(e);
-      print("backtrace: $backtrace");
-    }
+  Widget buildBluetoothSearchingIcon(BuildContext context) {
+    return const Icon(Icons.bluetooth_searching, size: 200.0, color: Colors.white54);
   }
 
-  void onConnectPressed(BluetoothDevice device) {
-    device.connectAndUpdateStream().catchError((e) {
-      Snackbar.show(ABC.c, prettyException("Connect Error:", e), success: false);
-    });
-    MaterialPageRoute route = MaterialPageRoute(
-        builder: (context) => DeviceScreen(device: device), settings: RouteSettings(name: '/DeviceScreen'));
-    Navigator.of(context).push(route);
-  }
-
-  Future onRefresh() {
-    if (_isScanning == false) {
-      FlutterBluePlus.startScan(timeout: const Duration(seconds: 15));
-    }
-    if (mounted) {
-      setState(() {});
-    }
-    return Future.delayed(Duration(milliseconds: 500));
-  }
-
-  Widget buildScanButton() {
-    final button = _isScanning
-        ? ElevatedButton(
-            onPressed: onStopPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("STOP"),
-          )
-        : ElevatedButton(
-            onPressed: onScanPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("SCAN"),
-          );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (_isScanning) buildSpinner(),
-        button,
-      ],
-    );
-  }
-
-  Widget buildSpinner() {
-    return const Padding(
-      padding: EdgeInsets.only(right: 20.0),
-      child: SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2.5),
-      ),
-    );
-  }
-
-  List<Widget> _buildSystemDeviceTiles() {
-    return _systemDevices
-        .map(
-          (d) => SystemDeviceTile(
-            device: d,
-            onOpen: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => DeviceScreen(device: d),
-                settings: RouteSettings(name: '/DeviceScreen'),
-              ),
-            ),
-            onConnect: () => onConnectPressed(d),
-          ),
-        )
-        .toList();
-  }
-
-  Iterable<Widget> _buildScanResultTiles() {
-    return _scanResults.map((r) => ScanResultTile(result: r, onTap: () => onConnectPressed(r.device)));
+  Widget buildTitle(BuildContext context) {
+    String state = _isScanning ? "Searching Mastermind device" : "Click to start Mastermind search";
+    return Text(state, style: Theme.of(context).primaryTextTheme.titleSmall?.copyWith(color: Colors.white));
   }
 
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
-      key: Snackbar.snackBarKeyB,
+      key: Snackbar.snackBarKeyA,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Find Devices'),
-          actions: [buildScanButton(), const SizedBox(width: 15)],
-        ),
-        body: RefreshIndicator(
-          onRefresh: onRefresh,
-          child: ListView(
-            children: <Widget>[
-              ..._buildSystemDeviceTiles(),
-              ..._buildScanResultTiles(),
-            ],
+        backgroundColor: Colors.lightBlue,
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onScanPressed(),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[buildBluetoothSearchingIcon(context), buildTitle(context)]),
           ),
         ),
-        // floatingActionButton: buildScanButton(context),
       ),
     );
   }
