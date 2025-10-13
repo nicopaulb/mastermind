@@ -11,10 +11,9 @@
 
 LOG_MODULE_REGISTER(buzzer);
 
-static const etl::array<note_duration, 4> start{{{500, 100},
-                                                 {600, 200},
+static const etl::array<note_duration, 3> start{{{500, 200},
                                                  {800, 200},
-                                                 {500, 100}}};
+                                                 {500, 200}}};
 static const etl::array<note_duration, 1> button{{{400, 100}}};
 static const etl::array<note_duration, 1> clues{{{600, 200}}};
 static const etl::array<note_duration, 2> lose{{{392, 250}, {262, 500}}};
