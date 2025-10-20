@@ -28,12 +28,12 @@ public:
     button_val wait_for_input(k_timeout_t timeout);
 
 private:
-    const etl::array<struct gpio_dt_spec, 6> specs = {{GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios),
-                                                       GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios),
-                                                       GPIO_DT_SPEC_GET(DT_ALIAS(sw2), gpios),
-                                                       GPIO_DT_SPEC_GET(DT_ALIAS(sw3), gpios),
-                                                       GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios),
-                                                       GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios)}};
+    const etl::array<struct gpio_dt_spec, 6> specs = {{GPIO_DT_SPEC_GET(DT_NODELABEL(button_red), gpios),
+                                                       GPIO_DT_SPEC_GET(DT_NODELABEL(button_green), gpios),
+                                                       GPIO_DT_SPEC_GET(DT_NODELABEL(button_blue), gpios),
+                                                       GPIO_DT_SPEC_GET(DT_NODELABEL(button_yellow), gpios),
+                                                       GPIO_DT_SPEC_GET(DT_NODELABEL(button_white), gpios),
+                                                       GPIO_DT_SPEC_GET(DT_NODELABEL(button_gray), gpios)}};
     struct gpio_callback cb_data;
 };
 

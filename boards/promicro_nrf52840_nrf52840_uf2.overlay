@@ -1,13 +1,10 @@
-/*
- * Copyright (c) 2019, Nordic Semiconductor ASA
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <zephyr/dt-bindings/led/led.h>
 
-&arduino_spi {/* MOSI on D11 / P0.23 */
+&spi2 {
 	compatible = "nordic,nrf-spim";
+	pinctrl-0 = <&spi2_ledstrip>;
+	pinctrl-1 = <&spi2_ledstrip_sleep>;
+
 	led_strip: ws2812@0 {
 		compatible = "worldsemi,ws2812-spi";
 
@@ -40,37 +37,37 @@
 		compatible = "gpio-keys";
 
 		button_red: button_red {
-			gpios = <&gpio0 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio0 31 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button RED";
 			zephyr,code = <INPUT_KEY_0>;
 		};
 
 		button_green: button_green {
-			gpios = <&gpio0 14 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio0 29 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button GREEN";
 			zephyr,code = <INPUT_KEY_1>;
 		};
 
 		button_blue: button_blue {
-			gpios = <&gpio0 15 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio0 02 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button BLUE";
 			zephyr,code = <INPUT_KEY_2>;
 		};
 
 		button_yellow: button_yellow {
-			gpios = <&gpio0 16 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio1 15 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button YELLOW";
 			zephyr,code = <INPUT_KEY_3>;
 		};
 
 		button_white: button_white {
-			gpios = <&gpio0 16 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio1 13 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button WHITE";
 			zephyr,code = <INPUT_KEY_4>;
 		};
 
 		button_gray: button_gray {
-			gpios = <&gpio0 16 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			gpios = <&gpio1 11 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
 			label = "Push button GRAY";
 			zephyr,code = <INPUT_KEY_5>;
 		};
@@ -81,13 +78,30 @@
 &pinctrl {
 	pwm0_buzzer: pwm0_buzzer {
 		group1 {
-			psels = <NRF_PSEL(PWM_OUT0, 0, 27)>;
+			psels = <NRF_PSEL(PWM_OUT0, 1, 00)>;
 			nordic,invert;
 		};
 	};
 	pwm0_buzzer_sleep: pwm0_buzzer_sleep {
 		group1 {
-			psels = <NRF_PSEL(PWM_OUT0, 0, 27)>;
+			psels = <NRF_PSEL(PWM_OUT0, 1, 00)>;
+			low-power-enable;
+		};
+	};
+
+	spi2_ledstrip: spi2_ledstrip {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 1)>,
+				<NRF_PSEL(SPIM_MOSI, 0, 11)>,
+				<NRF_PSEL(SPIM_MISO, 1, 7)>;
+		};
+	};
+
+	spi2_ledstrip_sleep: spi2_ledstrip_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 1)>,
+				<NRF_PSEL(SPIM_MOSI, 0, 11)>,
+				<NRF_PSEL(SPIM_MISO, 1, 7)>;
 			low-power-enable;
 		};
 	};
