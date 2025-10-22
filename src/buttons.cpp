@@ -25,7 +25,8 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 	static int64_t last_button_pressed = 0;
 	// Debounce all the buttons together, no concurrent button presses allowed
 	int64_t current_tick = k_uptime_get();
-	if(current_tick - last_button_pressed > DEBOUNCE_TIME) {
+	if (current_tick - last_button_pressed > DEBOUNCE_TIME)
+	{
 		k_poll_signal_raise(&signal, pins);
 		last_button_pressed = current_tick;
 	}
@@ -86,15 +87,14 @@ bool buttons::init(void)
 
 	LOG_INF("Initializing buttons");
 
-	// All buttons are on the same port
-	if (!device_is_ready(specs[0].port))
-	{
-		LOG_ERR("Device is not ready");
-		return false;
-	}
-
 	for (const auto &i : specs)
 	{
+		if (!device_is_ready(i.port))
+		{
+			LOG_ERR("Device is not ready");
+			return false;
+		}
+
 		ret = gpio_pin_configure_dt(&i, GPIO_INPUT);
 		if (ret < 0)
 		{
@@ -117,11 +117,15 @@ bool buttons::init(void)
 
 	// Adding interrupt callback
 	gpio_init_callback(&cb_data, button_pressed, pin_mask);
-	ret = gpio_add_callback_dt(&specs[0], &cb_data);
-	if (ret < 0)
+
+	for (const auto &i : specs)
 	{
-		LOG_ERR("Couldn't add callback: %d", ret);
-		return false;
+		ret = gpio_add_callback_dt(&i, &cb_data);
+		if (ret < 0)
+		{
+			LOG_ERR("Couldn't add callback: %d", ret);
+			return false;
+		}
 	}
 
 	return true;
