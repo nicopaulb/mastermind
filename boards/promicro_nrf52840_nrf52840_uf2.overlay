@@ -1,5 +1,24 @@
 #include <zephyr/dt-bindings/led/led.h>
 
+&spi1 {
+	status = "okay";
+	compatible = "nordic,nrf-spim";
+	pinctrl-0 = <&spi1_segdisplay>;
+	pinctrl-1 = <&spi1_segdisplay_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio0 30 GPIO_ACTIVE_LOW>;
+
+	seg_display: seg_display@0 {
+		compatible = "zephyr,seg74hc595";
+		/* SPI */
+		reg = <0>;
+		spi-max-frequency = <4000000>;
+
+		/* 74HC595 */
+		latch-gpios = <&gpio0 24 GPIO_ACTIVE_HIGH>;
+	};
+};
+
 &spi2 {
 	compatible = "nordic,nrf-spim";
 	pinctrl-0 = <&spi2_ledstrip>;
@@ -9,7 +28,7 @@
 		compatible = "worldsemi,ws2812-spi";
 
 		/* SPI */
-		reg = <0>; /* ignored, but necessary for SPI bindings */
+		reg = <0>;
 		spi-max-frequency = <4000000>;
 
 		/* WS2812 */
@@ -89,6 +108,23 @@
 		};
 	};
 
+	spi1_segdisplay: spi1_segdisplay {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 4)>,
+				<NRF_PSEL(SPIM_MOSI, 1, 6)>,
+				<NRF_PSEL(SPIM_MISO, 1, 2)>;
+		};
+	};
+
+	spi1_segdisplay_sleep: spi1_segdisplay_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 4)>,
+				<NRF_PSEL(SPIM_MOSI, 1, 6)>,
+				<NRF_PSEL(SPIM_MISO, 1, 2)>;
+			low-power-enable;
+		};
+	};
+
 	spi2_ledstrip: spi2_ledstrip {
 		group1 {
 			psels = <NRF_PSEL(SPIM_SCK, 1, 1)>,
@@ -105,6 +141,8 @@
 			low-power-enable;
 		};
 	};
+
+
 };
 
 &pwm0 {

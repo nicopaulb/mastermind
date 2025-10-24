@@ -1,0 +1,2 @@
+zephyr_library()
+zephyr_library_sources(auxdisplay_seg74hc595.c)

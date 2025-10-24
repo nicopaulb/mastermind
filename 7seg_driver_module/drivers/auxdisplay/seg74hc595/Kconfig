@@ -1,0 +1,12 @@
+config AUXDISPLAY_74HC595
+	bool "74HC595 7-segment display support"
+	depends on DT_HAS_ZEPHYR_SEG74HC595_ENABLED
+	select SPI
+    select GPIO
+	help
+      Enable driver for 74HC595 7-segment LED display.
+	  This driver supports 4-digit 7-segment displays commonly found in clock modules
+	  and simple numeric displays.
+
+	  This driver implements the auxdisplay API, allowing generic display usage.
+	  Helper APIs for direct number display are also available.
