@@ -1,0 +1,3 @@
+if AUXDISPLAY
+  rsource "seg74hc595/Kconfig"
+endif # AUXDISPLAY

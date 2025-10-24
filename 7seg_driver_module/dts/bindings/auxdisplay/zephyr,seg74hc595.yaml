@@ -1,0 +1,11 @@
+description: 74HC595 7-segment LED display controller
+
+compatible: "zephyr,seg74hc595"
+
+include: spi-device.yaml
+
+properties:
+  latch-gpios:
+    type: phandle-array
+    required: true
+    description: Latch GPIO pin

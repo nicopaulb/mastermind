@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_AUXDISPLAY_74HC595 seg74hc595)
