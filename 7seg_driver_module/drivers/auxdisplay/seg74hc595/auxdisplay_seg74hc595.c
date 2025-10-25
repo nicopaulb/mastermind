@@ -79,7 +79,7 @@ static int seg74hc595_auxdisplay_write(const struct device *dev, const uint8_t *
     uint32_t pos = len - 1;
     uint16_t i = 0;
 
-    if(len > cfg->capabilities.columns)
+    if (len > cfg->capabilities.columns)
     {
         return -EINVAL;
     }
@@ -126,7 +126,7 @@ static int seg74hc595_auxdisplay_clear(const struct device *dev)
 {
     struct seg74hc595_data *data = dev->data;
 
-    memset(data->display_buf, 0, sizeof(data->display_buf));
+    memset(data->display_buf, 0xFF, sizeof(data->display_buf)); // TODO support common cathode
 
     return seg74hc595_update_display(dev);
 }
@@ -134,23 +134,20 @@ static int seg74hc595_auxdisplay_clear(const struct device *dev)
 static int seg74hc595_initialize(const struct device *dev)
 {
     const struct seg74hc595_config *cfg = dev->config;
-    struct seg74hc595_data *data = dev->data;
 
-    if (!gpio_is_ready_dt(&cfg->latch_pin) || !spi_is_ready_dt(&cfg->spi))
+    if (cfg->capabilities.columns > 4 || !gpio_is_ready_dt(&cfg->latch_pin) || !spi_is_ready_dt(&cfg->spi))
     {
         return -ENODEV;
     }
 
     gpio_pin_configure_dt(&cfg->latch_pin, GPIO_OUTPUT_ACTIVE);
 
-    memset(data->display_buf, 0, sizeof(data->display_buf));
-
     return seg74hc595_auxdisplay_clear(dev);
 }
 
 static int seg74hc595_auxdisplay_display_on(const struct device *dev)
 {
-	return seg74hc595_update_display(dev);
+    return seg74hc595_update_display(dev);
 }
 
 static int seg74hc595_auxdisplay_display_off(const struct device *dev)
@@ -163,7 +160,7 @@ static int seg74hc595_auxdisplay_display_off(const struct device *dev)
     memcpy(buffer_save, data->display_buf, sizeof(data->display_buf));
     rv = seg74hc595_auxdisplay_write(dev, buffer_empty, sizeof(buffer_empty));
     memcpy(data->display_buf, buffer_save, sizeof(data->display_buf));
-	return rv;
+    return rv;
 }
 
 static int seg74hc595_auxdisplay_capabilities_get(const struct device *dev,
@@ -189,7 +186,7 @@ static const struct auxdisplay_driver_api seg74hc595_auxdisplay_api = {
         .latch_pin = GPIO_DT_SPEC_INST_GET(inst, latch_gpios),                                                   \
         .capabilities =                                                                                          \
             {                                                                                                    \
-                .columns = 2,                                                                                    \
+                .columns = DT_INST_PROP(inst, digits),                                                           \
                 .rows = 1,                                                                                       \
             },                                                                                                   \
     };                                                                                                           \

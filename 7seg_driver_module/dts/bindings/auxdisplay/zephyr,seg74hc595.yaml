@@ -9,3 +9,8 @@ properties:
     type: phandle-array
     required: true
     description: Latch GPIO pin
+
+  digits:
+    type: int
+    required: true
+    description: Number of digits (Maximum 4)
