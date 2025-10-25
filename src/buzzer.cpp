@@ -110,31 +110,31 @@ bool buzzer::init(void)
  * @brief Play the beep sound.
  *
  */
-void buzzer::buzzer_play_button(void)
+void buzzer::play_button(void)
 {
     song.assign(button.begin(), button.end());
     k_wakeup(threadId);
 }
 
-void buzzer::buzzer_play_start(void)
+void buzzer::play_start(void)
 {
     song.assign(start.begin(), start.end());
     k_wakeup(threadId);
 }
 
-void buzzer::buzzer_play_win(void)
+void buzzer::play_win(void)
 {
     song.assign(win.begin(), win.end());
     k_wakeup(threadId);
 }
 
-void buzzer::buzzer_play_lose(void)
+void buzzer::play_lose(void)
 {
     song.assign(lose.begin(), lose.end());
     k_wakeup(threadId);
 }
 
-void buzzer::buzzer_play_clues(void)
+void buzzer::play_clues(void)
 {
     song.assign(clues.begin(), clues.end());
     k_wakeup(threadId);

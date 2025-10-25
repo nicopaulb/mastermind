@@ -16,11 +16,11 @@ class buzzer
 public:
     buzzer();
     bool init();
-    void buzzer_play_button(void);
-    void buzzer_play_win(void);
-    void buzzer_play_lose(void);
-    void buzzer_play_clues(void);
-    void buzzer_play_start(void);
+    void play_button(void);
+    void play_win(void);
+    void play_lose(void);
+    void play_clues(void);
+    void play_start(void);
 
 private:
     const struct pwm_dt_spec pwm_buzzer = PWM_DT_SPEC_GET(DT_NODELABEL(buzzer));
