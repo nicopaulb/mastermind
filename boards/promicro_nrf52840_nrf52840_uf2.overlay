@@ -16,6 +16,7 @@
 
 		/* 74HC595 */
 		latch-gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+		digits = <2>;
 	};
 };
 
