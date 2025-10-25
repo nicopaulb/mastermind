@@ -12,6 +12,7 @@
 #include "buttons.hpp"
 #include "ble.hpp"
 #include "buzzer.hpp"
+#include "display.hpp"
 #include "app_cfg.hpp"
 
 #define LOG_LEVEL 4
@@ -40,6 +41,7 @@ static void state_off_run(void *o);
 // FSM state variables
 static led_strip leds;
 static buzzer buzzer;
+static display display;
 static buttons buts;
 static combination code;
 static etl::array<combination, MAX_TRY> tentatives;
@@ -69,7 +71,8 @@ static void state_start_run(void *o)
 		code.random_fill();
 	}
 
-	buzzer.buzzer_play_start();
+	display.show_number(1);
+	buzzer.play_start();
 
 	ble_update_status(tentatives, code, try_id);
 	smf_set_state(&ctx, &states[STATE_CHECK_CMD]);
@@ -127,7 +130,7 @@ static void state_check_input_run(void *o)
 	case button_val::BUTTON_VAL_4:
 	case button_val::BUTTON_VAL_5:
 	case button_val::BUTTON_VAL_6:
-		buzzer.buzzer_play_button();
+		buzzer.play_button();
 		slot_left = tentatives[try_id].set_slot_next(static_cast<slot_value>(val));
 		break;
 	case button_val::BUTTON_VAL_NONE:
@@ -156,7 +159,8 @@ static void state_clues_run(void *o)
 	leds.update_combination(tentatives[try_id++]);
 	leds.refresh();
 
-	buzzer.buzzer_play_clues();
+	buzzer.play_clues();
+	display.show_number(try_id + 1);
 
 	ble_update_status(tentatives, code, try_id);
 
@@ -178,8 +182,10 @@ static void state_clues_run(void *o)
 static void state_end_win_run(void *o)
 {
 	LOG_INF("WIN !");
-	buzzer.buzzer_play_win();
+	buzzer.play_win();
+	display.clear();
 
+	// Wait a bit to show the win message
 	k_sleep(K_SECONDS(5));
 	manual_mode = false;
 	smf_set_state(&ctx, &states[STATE_START]);
@@ -188,10 +194,12 @@ static void state_end_win_run(void *o)
 static void state_end_lost_run(void *o)
 {
 	LOG_INF("LOST !");
-	buzzer.buzzer_play_lose();
+	buzzer.play_lose();
+	display.clear();
 	leds.update_combination(code);
 	leds.refresh();
 
+	// Wait a bit to show the lose message
 	k_sleep(K_SECONDS(5));
 	manual_mode = false;
 	smf_set_state(&ctx, &states[STATE_START]);
@@ -222,6 +230,11 @@ int main(void)
 	}
 
 	if(!buzzer.init())
+	{
+		return 1;
+	}
+
+	if(!display.init())
 	{
 		return 1;
 	}
