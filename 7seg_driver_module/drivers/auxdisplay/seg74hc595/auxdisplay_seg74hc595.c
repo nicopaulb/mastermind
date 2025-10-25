@@ -76,12 +76,17 @@ static int seg74hc595_auxdisplay_write(const struct device *dev, const uint8_t *
 {
     const struct seg74hc595_config *cfg = dev->config;
     struct seg74hc595_data *data = dev->data;
-    uint32_t pos = 0;
+    uint32_t pos = len - 1;
     uint16_t i = 0;
+
+    if(len > cfg->capabilities.columns)
+    {
+        return -EINVAL;
+    }
 
     memset(data->display_buf, 0, sizeof(data->display_buf));
 
-    while (i < len && pos < cfg->capabilities.columns)
+    while (i < len && pos >= 0)
     {
         char c = buf[i];
         uint8_t segment_code = 0;
@@ -111,7 +116,7 @@ static int seg74hc595_auxdisplay_write(const struct device *dev, const uint8_t *
         {
             i++; /* Just move to next character */
         }
-        pos++;
+        pos--;
     }
 
     return seg74hc595_update_display(dev);
