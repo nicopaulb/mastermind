@@ -44,6 +44,7 @@ struct seg74hc595_config
 {
     struct spi_dt_spec spi;
     struct gpio_dt_spec latch_pin;
+    bool common_anode;
     struct auxdisplay_capabilities capabilities;
 };
 
@@ -104,17 +105,17 @@ static int seg74hc595_auxdisplay_write(const struct device *dev, const uint8_t *
             segment_code = BLANK;
         }
 
-        data->display_buf[pos] = ~segment_code; // TODO Make it work with common cathode
+        data->display_buf[pos] = cfg->common_anode ? ~segment_code : segment_code;
 
         /* Check if next character is a decimal point */
         if (i + 1 < len && buf[i + 1] == '.')
         {
-            data->display_buf[pos] |= ~DP_BIT; /* Add decimal point to current digit */
-            i += 2;                            /* Skip both the character and the '.' */
+            data->display_buf[pos] |= cfg->common_anode ? ~DP_BIT : DP_BIT; /* Add decimal point to current digit */
+            i += 2;                                                         /* Skip both the character and the '.' */
         }
         else
         {
-            i++; /* Just move to next character */
+            i++;
         }
         pos--;
     }
@@ -124,9 +125,10 @@ static int seg74hc595_auxdisplay_write(const struct device *dev, const uint8_t *
 
 static int seg74hc595_auxdisplay_clear(const struct device *dev)
 {
+    const struct seg74hc595_config *cfg = dev->config;
     struct seg74hc595_data *data = dev->data;
 
-    memset(data->display_buf, 0xFF, sizeof(data->display_buf)); // TODO support common cathode
+    memset(data->display_buf, cfg->common_anode ? 0xFF : 0x00, sizeof(data->display_buf));
 
     return seg74hc595_update_display(dev);
 }
@@ -184,6 +186,7 @@ static const struct auxdisplay_driver_api seg74hc595_auxdisplay_api = {
     static const struct seg74hc595_config seg74hc595_config_##inst = {                                           \
         .spi = SPI_DT_SPEC_INST_GET(inst, SPI_WORD_SET(8) | SPI_TRANSFER_MSB, 0),                                \
         .latch_pin = GPIO_DT_SPEC_INST_GET(inst, latch_gpios),                                                   \
+        .common_anode = DT_INST_PROP(inst, common_anode),                                                        \
         .capabilities =                                                                                          \
             {                                                                                                    \
                 .columns = DT_INST_PROP(inst, digits),                                                           \

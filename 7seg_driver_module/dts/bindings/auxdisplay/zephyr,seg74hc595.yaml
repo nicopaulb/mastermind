@@ -14,3 +14,7 @@ properties:
     type: int
     required: true
     description: Number of digits (Maximum 4)
+
+  common-anode:
+    type: boolean
+    description: Set to true if the display is common anode, false if common cathode
