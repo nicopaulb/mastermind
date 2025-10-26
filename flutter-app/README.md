@@ -1,3 +1,3 @@
-# mastermind
+# Mastermind companion app
 
-A new Flutter project.
+See 
