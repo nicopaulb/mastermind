@@ -1,3 +1,3 @@
 # Mastermind companion app
 
-See 
+Flutter application to communicate with the electronic mastermind.
