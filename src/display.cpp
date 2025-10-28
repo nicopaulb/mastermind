@@ -9,6 +9,11 @@
 
 LOG_MODULE_REGISTER(display);
 
+/**
+ * @brief Initialize the display
+ *
+ * @return true if the initialization was successful, false otherwise.
+ */
 bool display::init(void)
 {
     int err = device_is_ready(segment_display);
@@ -21,6 +26,12 @@ bool display::init(void)
     return true;
 }
 
+/**
+ * @brief Print a number on the display (0-99)
+ *
+ * @param num Integer to print on the display (0-99)
+ * @return true if the operation was successful, false otherwise.
+ */
 bool display::show_number(uint8_t num)
 {
     char str[3];
@@ -41,6 +52,11 @@ bool display::show_number(uint8_t num)
     return true;
 }
 
+/**
+ * @brief Clear the content on the display
+ *
+ * @return true if the operation was successful, false otherwise.
+ */
 bool display::clear(void)
 {
     if (!auxdisplay_clear(segment_display))
