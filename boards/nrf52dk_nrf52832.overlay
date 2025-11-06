@@ -19,6 +19,22 @@
 	};
 };
 
+&spi1 {
+	status = "okay";
+	compatible = "nordic,nrf-spim";
+	seg_display: seg_display@0 {
+		compatible = "zephyr,seg74hc595";
+		/* SPI */
+		reg = <0>;
+		spi-max-frequency = <4000000>;
+
+		/* 74HC595 */
+		latch-gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
+		digits = <2>;
+		common-anode;
+	};
+};
+
 / {
 	aliases {
 		led-strip = &led_strip;
