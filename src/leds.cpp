@@ -12,16 +12,16 @@
 LOG_MODULE_REGISTER(leds);
 
 #define LED_OFF RGB(0x00, 0x00, 0x00)
-#define LED_CORRECT RGB(0x00, 0xFF, 0x00)
-#define LED_WRONG_POS RGB(0xFF, 0xFF, 0x00)
+#define LED_CORRECT RGB(0x00, 0x0F, 0x00)
+#define LED_WRONG_POS RGB(0x0F, 0x0F, 0x00)
 
 static const struct led_rgb code_colors[] = {
-    RGB(0xFF, 0xFF, 0xFF), // white
-    RGB(0xFF, 0x00, 0x00), // red
-    RGB(0x00, 0xFF, 0x00), // green
-    RGB(0x00, 0x00, 0xFF), // blue
-    RGB(0xFF, 0xFF, 0x00), // yellow
-    RGB(0xFF, 0x00, 0xFF)  // magenta
+    RGB(0x0F, 0x0F, 0x0F), // white
+    RGB(0x0F, 0x00, 0x00), // red
+    RGB(0x00, 0x0F, 0x00), // green
+    RGB(0x00, 0x00, 0x0F), // blue
+    RGB(0x0F, 0x0F, 0x00), // yellow
+    RGB(0x0F, 0x00, 0x0F)  // magenta
 };
 
 /**
@@ -53,32 +53,37 @@ void led_strip::update_combination(combination &combi)
     uint8_t clues_nb = 0;
 
     // Set combi LEDs
-    for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
+    // Strip is reversed so fill array starting by the end
+    for (uint8_t i = 0, led_index = 3; i < STRIP_NUM_LEDS / 2; i++, led_index--)
     {
         if (combi.slots[i].set)
         {
-            leds[i] = code_colors[int(combi.slots[i].value)];
+            leds[led_index] = code_colors[int(combi.slots[i].value)];
         }
         else
         {
-            leds[i] = LED_OFF;
+            leds[led_index] = LED_OFF;
         }
     }
 
     // Set clues LEDs
+    // LEDs placement and indexes :
+    // || 4 || 7 ||
+    // || 5 || 6 ||
+    const uint8_t led_clues_index[4] = {4, 7, 5, 6};
     for (uint8_t i = 0; i < STRIP_NUM_LEDS / 2; i++)
     {
         if (i < combi.clues_correct)
         {
-            leds[STRIP_NUM_LEDS / 2 + i] = LED_CORRECT;
+            leds[led_clues_index[i]] = LED_CORRECT;
         }
         else if (i < combi.clues_correct + combi.clues_present)
         {
-            leds[STRIP_NUM_LEDS / 2 + i] = LED_WRONG_POS;
+            leds[led_clues_index[i]] = LED_WRONG_POS;
         }
         else
         {
-            leds[STRIP_NUM_LEDS / 2 + i] = LED_OFF;
+            leds[led_clues_index[i]] = LED_OFF;
         }
     }
 }
