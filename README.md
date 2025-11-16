@@ -8,5 +8,6 @@ Find the followings items :
 - `flutter-app` : Flutter companion application for interacting with the Mastermind via BLE
 - `pcb` : All KiCad files for PCB manufacturing and electric schema
 
+[![Youtube Video](https://github.com/user-attachments/assets/ccc8192e-031e-4efb-a154-acaf2ef9e877)](https://www.youtube.com/watch?v=6QL7J55KHXo)
 
 Read more about it here : https://blog.beniserv.fr/posts/mastermind/
